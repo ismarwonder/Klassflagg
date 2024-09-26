@@ -1,0 +1,33 @@
+body {
+    background-color: #f8f9fa;
+}
+
+h2 {
+    margin-bottom: 20px;
+}
+
+#toggle-flag {
+    width: 100%;
+    padding: 15px;
+    font-size: 18px;
+}
+
+#reset-flags {
+    width: 100%;
+    padding: 15px;
+    font-size: 18px;
+}
+
+#login-screen, #student-screen, #teacher-screen {
+    max-width: 500px;
+    margin: auto;
+}
+
+#current-flag {
+    font-size: 24px;
+}
+
+canvas {
+    max-width: 400px;
+    margin: auto;
+}
