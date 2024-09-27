@@ -9,20 +9,20 @@ import {
   get,
   onValue,
   update,
-  onDisconnect
+  onDisconnect,
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
 // Firebase-konfiguration
 const firebaseConfig = {
-    apiKey: "AIzaSyCEnhv-697OiE56F0ghAuhSMh1wxm-ppnM",
-    authDomain: "klassflagg.firebaseapp.com",
-    projectId: "klassflagg",
-    databaseURL: "https://klassflagg-default-rtdb.europe-west1.firebasedatabase.app/",
-    storageBucket: "klassflagg.appspot.com",
-    messagingSenderId: "85254934938",
-    appId: "1:85254934938:web:830f4b9e1e078566e5aa23",
-    measurementId: "G-5Z0Y08ZQYB"
-  };
+  apiKey: "AIzaSyCEnhv-697OiE56F0ghAuhSMh1wxm-ppnM",
+  authDomain: "klassflagg.firebaseapp.com",
+  projectId: "klassflagg",
+  databaseURL: "https://klassflagg-default-rtdb.europe-west1.firebasedatabase.app/",
+  storageBucket: "klassflagg.appspot.com",
+  messagingSenderId: "85254934938",
+  appId: "1:85254934938:web:830f4b9e1e078566e5aa23",
+  measurementId: "G-5Z0Y08ZQYB"
+};
 
 // Initialisera Firebase
 const app = initializeApp(firebaseConfig);
@@ -33,7 +33,13 @@ const loginScreen = document.getElementById('login-screen');
 const studentScreen = document.getElementById('student-screen');
 const teacherScreen = document.getElementById('teacher-screen');
 const usernameInput = document.getElementById('username');
-const joinSessionBtn = document.getElementById('join-session');
+const passwordGroup = document.getElementById('password-group');
+const passwordInput = document.getElementById('password');
+const createSessionBtn = document.getElementById('create-session-btn');
+const joinSessionBtn = document.getElementById('join-session-btn');
+const sessionCodeInput = document.getElementById('session-code-input');
+const sessionCodeGroup = document.getElementById('session-code-group');
+const sessionCodeDisplay = document.getElementById('session-code-display');
 const studentNameEl = document.getElementById('student-name');
 const toggleFlagBtn = document.getElementById('toggle-flag');
 const resetFlagsBtn = document.getElementById('reset-flags');
@@ -44,45 +50,113 @@ let username = '';
 let isTeacher = false;
 let currentFlag = 'red';
 let flagChart;
+let sessionCode = '';
 
-// Händelsehanterare för att ansluta till sessionen
+// Hemligt lösenord för läraren (ändra detta till ditt eget lösenord)
+const teacherPassword = 'teacherpassword'; // Byt ut mot ditt eget lösenord
+
+// Händelsehanterare för användarnamn inmatning
+usernameInput.addEventListener('input', () => {
+  const usernameValue = usernameInput.value.trim().toLowerCase();
+  if (usernameValue === 'teacher') {
+    isTeacher = true;
+    // Dölj sessionskodfältet och anslutningsknappen
+    sessionCodeGroup.style.display = 'none';
+    joinSessionBtn.style.display = 'none';
+    // Visa lösenordsfältet och knappen för att skapa session
+    passwordGroup.style.display = 'block';
+    createSessionBtn.style.display = 'block';
+  } else {
+    isTeacher = false;
+    // Visa sessionskodfältet och anslutningsknappen
+    sessionCodeGroup.style.display = 'block';
+    joinSessionBtn.style.display = 'block';
+    // Dölj lösenordsfältet och knappen för att skapa session
+    passwordGroup.style.display = 'none';
+    createSessionBtn.style.display = 'none';
+  }
+});
+
+// Händelsehanterare för "Skapa Ny Session"-knappen (Lärare)
+createSessionBtn.addEventListener('click', () => {
+  username = usernameInput.value.trim();
+  const password = passwordInput.value;
+
+  if (username === '') {
+    alert('Var god ange ditt namn.');
+    return;
+  }
+  if (password !== teacherPassword) {
+    alert('Fel lösenord. Var god försök igen.');
+    return;
+  }
+
+  isTeacher = true;
+  sessionCode = generateSessionCode();
+  loginScreen.style.display = 'none';
+  teacherScreen.style.display = 'block';
+  sessionCodeDisplay.textContent = sessionCode;
+  initTeacherView();
+});
+
+// Händelsehanterare för "Anslut till Session"-knappen (Elev)
 joinSessionBtn.addEventListener('click', () => {
   username = usernameInput.value.trim();
   if (username === '') {
     alert('Var god ange ditt namn.');
     return;
   }
-  if (username.toLowerCase() === 'teacher') {
-    isTeacher = true;
-    loginScreen.style.display = 'none';
-    teacherScreen.style.display = 'block';
-    initTeacherView();
-  } else {
-    isTeacher = false;
-    loginScreen.style.display = 'none';
-    studentScreen.style.display = 'block';
-    studentNameEl.textContent = username;
-    initStudentView();
+  if (sessionCodeInput.value.trim() === '') {
+    alert('Var god ange sessionskoden.');
+    return;
   }
+  sessionCode = sessionCodeInput.value.trim().toUpperCase();
+  isTeacher = false;
+
+  // Kontrollera om sessionen existerar
+  const sessionRef = ref(database, `sessions/${sessionCode}`);
+  get(sessionRef).then((snapshot) => {
+    if (snapshot.exists()) {
+      loginScreen.style.display = 'none';
+      studentScreen.style.display = 'block';
+      studentNameEl.textContent = username;
+      initStudentView();
+    } else {
+      alert('Sessionskoden är ogiltig. Var god kontrollera och försök igen.');
+    }
+  });
 });
+
+// Funktion för att generera en unik sessionskod
+function generateSessionCode() {
+  const code = Math.random().toString(36).substr(2, 6).toUpperCase();
+  return code;
+}
 
 // Funktion för elevens vy
 function initStudentView() {
-  const userRef = ref(database, 'session/users/' + username);
-  set(userRef, { flag: currentFlag });
-  onDisconnect(userRef).remove();
+  const userRef = ref(database, `sessions/${sessionCode}/users/${username}`);
+  get(userRef).then((snapshot) => {
+    if (snapshot.exists()) {
+      alert('Användarnamnet är redan taget i denna session. Vänligen välj ett annat namn.');
+      window.location.reload();
+    } else {
+      set(userRef, { flag: currentFlag });
+      onDisconnect(userRef).remove();
 
-  toggleFlagBtn.addEventListener('click', () => {
-    currentFlag = currentFlag === 'red' ? 'green' : 'red';
-    update(userRef, { flag: currentFlag });
-    updateFlagStatus();
-  });
+      toggleFlagBtn.addEventListener('click', () => {
+        currentFlag = currentFlag === 'red' ? 'green' : 'red';
+        update(userRef, { flag: currentFlag });
+        updateFlagStatus();
+      });
 
-  onValue(userRef, (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-      currentFlag = data.flag;
-      updateFlagStatus();
+      onValue(userRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          currentFlag = data.flag;
+          updateFlagStatus();
+        }
+      });
     }
   });
 }
@@ -105,8 +179,12 @@ function updateFlagStatus() {
 
 // Funktion för lärarens vy
 function initTeacherView() {
+  // Spara sessionskoden i databasen
+  const sessionRef = ref(database, `sessions/${sessionCode}`);
+  set(sessionRef, { createdAt: Date.now() });
+
   resetFlagsBtn.addEventListener('click', resetAllFlags);
-  onValue(ref(database, 'session/users'), (snapshot) => {
+  onValue(ref(database, `sessions/${sessionCode}/users`), (snapshot) => {
     const users = snapshot.val() || {};
     let greenCount = 0;
     let redCount = 0;
@@ -125,11 +203,11 @@ function initTeacherView() {
 
 // Funktion för att återställa alla flaggor
 function resetAllFlags() {
-  const usersRef = ref(database, 'session/users');
+  const usersRef = ref(database, `sessions/${sessionCode}/users`);
   get(usersRef).then((snapshot) => {
     const users = snapshot.val() || {};
     Object.keys(users).forEach(userName => {
-      const userRef = ref(database, 'session/users/' + userName);
+      const userRef = ref(database, `sessions/${sessionCode}/users/${userName}`);
       update(userRef, { flag: 'red' });
     });
   });
@@ -141,8 +219,8 @@ function updateChart(greenCount, redCount) {
     labels: ['Grön Flagg', 'Röd Flagg'],
     datasets: [{
       data: [greenCount, redCount],
-      backgroundColor: ['#28a745', '#dc3545']
-    }]
+      backgroundColor: ['#28a745', '#dc3545'],
+    }],
   };
 
   if (flagChart) {
@@ -154,8 +232,8 @@ function updateChart(greenCount, redCount) {
       data: data,
       options: {
         responsive: true,
-        maintainAspectRatio: false
-      }
+        maintainAspectRatio: false,
+      },
     });
   }
 }
