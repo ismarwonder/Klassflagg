@@ -6,21 +6,13 @@ h2 {
     margin-bottom: 20px;
 }
 
-#toggle-flag {
-    width: 100%;
-    padding: 15px;
-    font-size: 18px;
-}
-
-#reset-flags {
-    width: 100%;
+#toggle-flag, #reset-flags {
     padding: 15px;
     font-size: 18px;
 }
 
 #login-screen, #student-screen, #teacher-screen {
-    max-width: 500px;
-    margin: auto;
+    margin-top: 20px;
 }
 
 #current-flag {
@@ -28,6 +20,6 @@ h2 {
 }
 
 canvas {
-    max-width: 400px;
-    margin: auto;
+    max-width: 100%;
+    height: auto;
 }
