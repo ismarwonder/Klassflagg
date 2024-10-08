@@ -29,14 +29,19 @@
             <div class="card-body">
                 <h2 class="text-center">Lärarinloggning</h2>
                 <div class="form-group">
-                    <input type="text" id="teacher-username" class="form-control" placeholder="Ange användarnamn">
-                </div>
-                <div class="form-group">
-                    <input type="password" id="teacher-password" class="form-control" placeholder="Ange lösenord">
+                    <input type="email" id="teacher-email" class="form-control" placeholder="Ange din e-postadress">
                 </div>
                 <!-- Knappar -->
-                <button id="teacher-login-submit-btn" class="btn btn-primary btn-block">Logga in</button>
+                <button id="teacher-login-submit-btn" class="btn btn-primary btn-block">Skicka inloggningslänk</button>
                 <button id="teacher-login-back-btn" class="btn btn-secondary btn-block">Tillbaka</button>
+            </div>
+        </div>
+
+        <!-- Lärarinloggningsinstruktioner -->
+        <div id="teacher-login-instructions" class="card mx-auto" style="max-width: 400px; display: none;">
+            <div class="card-body">
+                <h2 class="text-center">Kontrollera din e-post</h2>
+                <p>En inloggningslänk har skickats till din e-postadress. Klicka på länken i e-postmeddelandet för att logga in.</p>
             </div>
         </div>
 
@@ -44,7 +49,7 @@
         <div id="student-screen" style="display: none;">
             <div class="card mx-auto" style="max-width: 400px;">
                 <div class="card-body text-center">
-                    <h2>Hej, <span id="student-name"></span>!</h2>
+                    <h2>Elevpanel</h2>
                     <p>Din nuvarande flaggstatus är: <strong><span id="current-flag">Röd</span></strong></p>
                     <button id="toggle-flag" class="btn btn-success btn-lg btn-block">Sätt Grön Flagg</button>
                 </div>
@@ -61,6 +66,7 @@
                         <canvas id="flag-chart"></canvas>
                     </div>
                     <button id="reset-flags" class="btn btn-warning btn-lg btn-block">Återställ Alla Flaggor</button>
+                    <button id="teacher-logout-btn" class="btn btn-secondary btn-lg btn-block">Logga ut</button>
                 </div>
             </div>
         </div>
