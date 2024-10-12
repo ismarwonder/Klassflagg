@@ -46,8 +46,6 @@ var resetFlagsBtn = document.getElementById('reset-flags');
 var currentFlagEl = document.getElementById('current-flag');
 var flagChartCtx = document.getElementById('flag-chart').getContext('2d');
 var teacherLogoutBtn = document.getElementById('teacher-logout-btn');
-
-// Nya element
 var joinSessionBtn = document.getElementById('join-session-btn');
 var teacherLoginBtn = document.getElementById('teacher-login-btn');
 var teacherLoginScreen = document.getElementById('teacher-login-screen');
@@ -62,35 +60,6 @@ var flagChart;
 var sessionCode = '';
 var anonymousId = '';
 
-// Funktion för att hantera visningen av skärmar
-function showScreen(screenName) {
-  // Dölj alla skärmar
-  loginScreen.style.display = 'none';
-  teacherLoginScreen.style.display = 'none';
-  teacherLoginInstructions.style.display = 'none';
-  teacherScreen.style.display = 'none';
-  studentScreen.style.display = 'none';
-
-  // Visa önskad skärm
-  switch(screenName) {
-    case 'login':
-      loginScreen.style.display = 'block';
-      break;
-    case 'teacherLogin':
-      teacherLoginScreen.style.display = 'block';
-      break;
-    case 'teacherInstructions':
-      teacherLoginInstructions.style.display = 'block';
-      break;
-    case 'teacher':
-      teacherScreen.style.display = 'block';
-      break;
-    case 'student':
-      studentScreen.style.display = 'block';
-      break;
-  }
-}
-
 // Kontrollera om det är en inloggningslänk
 if (isSignInWithEmailLink(auth, window.location.href)) {
   var teacherEmail = window.localStorage.getItem('teacherEmailForSignIn');
@@ -103,14 +72,14 @@ if (isSignInWithEmailLink(auth, window.location.href)) {
       window.localStorage.removeItem('teacherEmailForSignIn');
       isTeacher = true;
       sessionCode = generateSessionCode();
-      showScreen('teacher'); // Visa lärarpanelen
+      teacherLoginInstructions.style.display = 'none';
+      teacherScreen.style.display = 'block';
       sessionCodeDisplay.textContent = sessionCode;
       initTeacherView();
     })
     .catch(function(error) {
       console.error(error);
       alert('Inloggningen misslyckades.');
-      showScreen('login'); // Visa inloggningsskärmen igen
     });
 }
 
@@ -130,7 +99,8 @@ joinSessionBtn.addEventListener('click', function() {
     if (snapshot.exists()) {
       // Generera ett unikt anonymt ID för eleven
       anonymousId = generateAnonymousId();
-      showScreen('student'); // Visa elevpanelen
+      loginScreen.style.display = 'none';
+      studentScreen.style.display = 'block';
       initStudentView();
     } else {
       alert('Sessionskoden är ogiltig. Var god kontrollera och försök igen.');
@@ -148,12 +118,14 @@ function generateAnonymousId() {
 
 // Händelsehanterare för "Lärarinloggning"-knappen
 teacherLoginBtn.addEventListener('click', function() {
-  showScreen('teacherLogin'); // Visa lärarinloggningsskärmen
+  loginScreen.style.display = 'none';
+  teacherLoginScreen.style.display = 'block';
 });
 
 // Händelsehanterare för "Tillbaka"-knappen på lärarinloggningsskärmen
 teacherLoginBackBtn.addEventListener('click', function() {
-  showScreen('login'); // Återgå till inloggningsskärmen
+  teacherLoginScreen.style.display = 'none';
+  loginScreen.style.display = 'block';
 });
 
 // Händelsehanterare för "Skicka inloggningslänk"-knappen på lärarinloggningsskärmen
@@ -166,7 +138,7 @@ teacherLoginSubmitBtn.addEventListener('click', function() {
   }
 
   var actionCodeSettings = {
-    url: window.location.origin, // Använd webbappens URL
+    url: window.location.href,
     handleCodeInApp: true,
   };
 
@@ -174,19 +146,21 @@ teacherLoginSubmitBtn.addEventListener('click', function() {
   sendSignInLinkToEmail(auth, teacherEmail, actionCodeSettings)
     .then(function() {
       window.localStorage.setItem('teacherEmailForSignIn', teacherEmail);
-      showScreen('teacherInstructions'); // Visa instruktioner
+      teacherLoginScreen.style.display = 'none';
+      loginScreen.style.display = 'none';
+      teacherLoginInstructions.style.display = 'block';
     })
     .catch(function(error) {
       console.error(error);
       alert('Ett fel uppstod vid skickandet av inloggningslänken.');
-      showScreen('login'); // Återgå till inloggningsskärmen
     });
 });
 
 // Hantera autentiseringsstatus
 onAuthStateChanged(auth, (user) => {
   if (user && isTeacher) {
-    showScreen('teacher'); // Visa lärarpanelen
+    teacherScreen.style.display = 'block';
+    loginScreen.style.display = 'none';
     sessionCodeDisplay.textContent = sessionCode;
     initTeacherView();
   }
@@ -195,8 +169,8 @@ onAuthStateChanged(auth, (user) => {
 // Händelsehanterare för "Logga ut"-knappen
 teacherLogoutBtn.addEventListener('click', function() {
   auth.signOut().then(function() {
-    isTeacher = false; // Återställ isTeacher-flaggan
-    showScreen('login'); // Visa inloggningsskärmen
+    teacherScreen.style.display = 'none';
+    loginScreen.style.display = 'block';
   }).catch(function(error) {
     console.error(error);
     alert('Ett fel uppstod vid utloggningen.');
@@ -267,7 +241,7 @@ function initTeacherView() {
     });
   } else {
     alert('Du måste vara inloggad för att komma åt lärarpanelen.');
-    showScreen('login'); // Visa inloggningsskärmen
+    window.location.href = '/';
   }
 }
 
