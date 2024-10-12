@@ -10,13 +10,6 @@ import {
   onDisconnect,
   remove
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
-import {
-  getAuth,
-  sendSignInLinkToEmail,
-  isSignInWithEmailLink,
-  signInWithEmailLink,
-  onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
 // Firebase-konfiguration
 const firebaseConfig = {
@@ -33,7 +26,6 @@ const firebaseConfig = {
 // Initialisera Firebase
 var app = initializeApp(firebaseConfig);
 var database = getDatabase(app);
-const auth = getAuth(app);
 
 // DOM-element
 var loginScreen = document.getElementById('login-screen');
@@ -45,43 +37,21 @@ var toggleFlagBtn = document.getElementById('toggle-flag');
 var resetFlagsBtn = document.getElementById('reset-flags');
 var currentFlagEl = document.getElementById('current-flag');
 var flagChartCtx = document.getElementById('flag-chart').getContext('2d');
-var teacherLogoutBtn = document.getElementById('teacher-logout-btn');
-var joinSessionBtn = document.getElementById('join-session-btn');
+
+// Nya element
+var joinSessionBtn = document.getElementById('join-session-btn'); // Lagt till denna rad
 var teacherLoginBtn = document.getElementById('teacher-login-btn');
 var teacherLoginScreen = document.getElementById('teacher-login-screen');
-var teacherEmailInput = document.getElementById('teacher-email');
+var teacherUsernameInput = document.getElementById('teacher-username');
+var teacherPasswordInput = document.getElementById('teacher-password');
 var teacherLoginSubmitBtn = document.getElementById('teacher-login-submit-btn');
 var teacherLoginBackBtn = document.getElementById('teacher-login-back-btn');
-var teacherLoginInstructions = document.getElementById('teacher-login-instructions');
 
 var isTeacher = false;
 var currentFlag = 'red';
 var flagChart;
 var sessionCode = '';
-var anonymousId = '';
-
-// Kontrollera om det är en inloggningslänk
-if (isSignInWithEmailLink(auth, window.location.href)) {
-  var teacherEmail = window.localStorage.getItem('teacherEmailForSignIn');
-  if (!teacherEmail) {
-    teacherEmail = window.prompt('Ange din e-postadress för att bekräfta inloggningen:');
-  }
-
-  signInWithEmailLink(auth, teacherEmail, window.location.href)
-    .then(function(result) {
-      window.localStorage.removeItem('teacherEmailForSignIn');
-      isTeacher = true;
-      sessionCode = generateSessionCode();
-      teacherLoginInstructions.style.display = 'none';
-      teacherScreen.style.display = 'block';
-      sessionCodeDisplay.textContent = sessionCode;
-      initTeacherView();
-    })
-    .catch(function(error) {
-      console.error(error);
-      alert('Inloggningen misslyckades.');
-    });
-}
+var anonymousId = ''; // Ny variabel för anonymt elev-ID
 
 // Händelsehanterare för "Anslut till Session"-knappen (Elev)
 joinSessionBtn.addEventListener('click', function() {
@@ -128,54 +98,39 @@ teacherLoginBackBtn.addEventListener('click', function() {
   loginScreen.style.display = 'block';
 });
 
-// Händelsehanterare för "Skicka inloggningslänk"-knappen på lärarinloggningsskärmen
+// Händelsehanterare för "Logga in"-knappen på lärarinloggningsskärmen
 teacherLoginSubmitBtn.addEventListener('click', function() {
-  var teacherEmail = teacherEmailInput.value.trim();
+  var teacherUsername = teacherUsernameInput.value.trim();
+  var teacherPassword = teacherPasswordInput.value;
 
-  if (teacherEmail === '') {
-    alert('Var god ange din e-postadress.');
+  if (teacherUsername === '') {
+    alert('Var god ange användarnamn.');
+    return;
+  }
+  if (teacherPassword === '') {
+    alert('Var god ange lösenord.');
     return;
   }
 
-  var actionCodeSettings = {
-    url: window.location.href,
-    handleCodeInApp: true,
-  };
-
-  // Skicka inloggningslänken
-  sendSignInLinkToEmail(auth, teacherEmail, actionCodeSettings)
-    .then(function() {
-      window.localStorage.setItem('teacherEmailForSignIn', teacherEmail);
-      teacherLoginScreen.style.display = 'none';
-      loginScreen.style.display = 'none';
-      teacherLoginInstructions.style.display = 'block';
-    })
-    .catch(function(error) {
-      console.error(error);
-      alert('Ett fel uppstod vid skickandet av inloggningslänken.');
-    });
-});
-
-// Hantera autentiseringsstatus
-onAuthStateChanged(auth, (user) => {
-  if (user && isTeacher) {
+  // Här skulle du implementera riktig autentisering
+  // För tillfället använder vi hårdkodat användarnamn och lösenord för demonstration
+  if (teacherUsername === 'larare' && teacherPassword === 'losenord') {
+    isTeacher = true;
+    sessionCode = generateSessionCode();
+    teacherLoginScreen.style.display = 'none';
     teacherScreen.style.display = 'block';
-    loginScreen.style.display = 'none';
     sessionCodeDisplay.textContent = sessionCode;
     initTeacherView();
+  } else {
+    alert('Fel användarnamn eller lösenord.');
   }
 });
 
-// Händelsehanterare för "Logga ut"-knappen
-teacherLogoutBtn.addEventListener('click', function() {
-  auth.signOut().then(function() {
-    teacherScreen.style.display = 'none';
-    loginScreen.style.display = 'block';
-  }).catch(function(error) {
-    console.error(error);
-    alert('Ett fel uppstod vid utloggningen.');
-  });
-});
+// Funktion för att generera en unik sessionskod
+function generateSessionCode() {
+  var code = Math.random().toString(36).substr(2, 6).toUpperCase();
+  return code;
+}
 
 // Funktion för elevens vy
 function initStudentView() {
@@ -216,33 +171,29 @@ function updateFlagStatus() {
 
 // Funktion för lärarens vy
 function initTeacherView() {
-  if (auth.currentUser) {
-    var sessionRef = ref(database, 'sessions/' + sessionCode);
-    set(sessionRef, { createdAt: Date.now() });
+  // Spara sessionskoden i databasen
+  var sessionRef = ref(database, 'sessions/' + sessionCode);
+  set(sessionRef, { createdAt: Date.now() });
 
-    resetFlagsBtn.addEventListener('click', resetAllFlags);
-    onValue(ref(database, 'sessions/' + sessionCode + '/users'), function(snapshot) {
-      var users = snapshot.val() || {};
-      var greenCount = 0;
-      var redCount = 0;
+  resetFlagsBtn.addEventListener('click', resetAllFlags);
+  onValue(ref(database, 'sessions/' + sessionCode + '/users'), function(snapshot) {
+    var users = snapshot.val() || {};
+    var greenCount = 0;
+    var redCount = 0;
 
-      for (var key in users) {
-        if (users.hasOwnProperty(key)) {
-          var user = users[key];
-          if (user.flag === 'green') {
-            greenCount++;
-          } else {
-            redCount++;
-          }
+    for (var key in users) {
+      if (users.hasOwnProperty(key)) {
+        var user = users[key];
+        if (user.flag === 'green') {
+          greenCount++;
+        } else {
+          redCount++;
         }
       }
+    }
 
-      updateChart(greenCount, redCount);
-    });
-  } else {
-    alert('Du måste vara inloggad för att komma åt lärarpanelen.');
-    window.location.href = '/';
-  }
+    updateChart(greenCount, redCount);
+  });
 }
 
 // Funktion för att återställa alla flaggor
@@ -282,10 +233,4 @@ function updateChart(greenCount, redCount) {
       },
     });
   }
-}
-
-// Funktion för att generera en unik sessionskod
-function generateSessionCode() {
-  var code = Math.random().toString(36).substr(2, 6).toUpperCase();
-  return code;
 }
