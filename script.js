@@ -101,6 +101,7 @@ if (isSignInWithEmailLink(auth, window.location.href)) {
   signInWithEmailLink(auth, teacherEmail, window.location.href)
     .then(function(result) {
       window.localStorage.removeItem('teacherEmailForSignIn');
+      window.history.replaceState({}, document.title, window.location.pathname);
       isTeacher = true;
       sessionCode = generateSessionCode();
       showScreen('teacher'); // Visa lärarpanelen
