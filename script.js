@@ -1,3 +1,5 @@
+// script.js
+
 // Importera Firebase-moduler
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import {
@@ -8,7 +10,6 @@ import {
   onValue,
   update,
   onDisconnect,
-  remove
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
 // Firebase-konfiguration
@@ -23,6 +24,7 @@ const firebaseConfig = {
   measurementId: "G-5Z0Y08ZQYB"
 };
 
+
 // Initialisera Firebase
 var app = initializeApp(firebaseConfig);
 var database = getDatabase(app);
@@ -31,99 +33,99 @@ var database = getDatabase(app);
 var loginScreen = document.getElementById('login-screen');
 var studentScreen = document.getElementById('student-screen');
 var teacherScreen = document.getElementById('teacher-screen');
+var usernameInput = document.getElementById('username');
+var passwordGroup = document.getElementById('password-group');
+var passwordInput = document.getElementById('password');
+var createSessionBtn = document.getElementById('create-session-btn');
+var joinSessionBtn = document.getElementById('join-session-btn');
 var sessionCodeInput = document.getElementById('session-code-input');
+var sessionCodeGroup = document.getElementById('session-code-group');
 var sessionCodeDisplay = document.getElementById('session-code-display');
+var studentNameEl = document.getElementById('student-name');
 var toggleFlagBtn = document.getElementById('toggle-flag');
 var resetFlagsBtn = document.getElementById('reset-flags');
 var currentFlagEl = document.getElementById('current-flag');
 var flagChartCtx = document.getElementById('flag-chart').getContext('2d');
 
-// Nya element
-var joinSessionBtn = document.getElementById('join-session-btn'); // Lagt till denna rad
-var teacherLoginBtn = document.getElementById('teacher-login-btn');
-var teacherLoginScreen = document.getElementById('teacher-login-screen');
-var teacherUsernameInput = document.getElementById('teacher-username');
-var teacherPasswordInput = document.getElementById('teacher-password');
-var teacherLoginSubmitBtn = document.getElementById('teacher-login-submit-btn');
-var teacherLoginBackBtn = document.getElementById('teacher-login-back-btn');
-
+var username = '';
 var isTeacher = false;
 var currentFlag = 'red';
 var flagChart;
 var sessionCode = '';
-var anonymousId = ''; // Ny variabel för anonymt elev-ID
+
+// Hemligt lösenord för läraren (ändra detta till ditt eget lösenord)
+var teacherPassword = 'LARARLOSENORD'; // Byt ut mot ditt eget lösenord
+
+// Händelsehanterare för användarnamn inmatning
+usernameInput.addEventListener('keyup', function() {
+  var usernameValue = usernameInput.value.trim().toLowerCase();
+  if (usernameValue === 'teacher') {
+    isTeacher = true;
+    // Dölj sessionskodfältet och anslutningsknappen
+    sessionCodeGroup.style.display = 'none';
+    joinSessionBtn.style.display = 'none';
+    // Visa lösenordsfältet och knappen för att skapa session
+    passwordGroup.style.display = 'block';
+    createSessionBtn.style.display = 'block';
+  } else {
+    isTeacher = false;
+    // Visa sessionskodfältet och anslutningsknappen
+    sessionCodeGroup.style.display = 'block';
+    joinSessionBtn.style.display = 'block';
+    // Dölj lösenordsfältet och knappen för att skapa session
+    passwordGroup.style.display = 'none';
+    createSessionBtn.style.display = 'none';
+  }
+});
+
+// Händelsehanterare för "Skapa Ny Session"-knappen (Lärare)
+createSessionBtn.addEventListener('click', function() {
+  username = usernameInput.value.trim();
+  var password = passwordInput.value;
+
+  if (username === '') {
+    alert('Var god ange ditt namn.');
+    return;
+  }
+  if (password !== teacherPassword) {
+    alert('Fel lösenord. Var god försök igen.');
+    return;
+  }
+
+  isTeacher = true;
+  sessionCode = generateSessionCode();
+  loginScreen.style.display = 'none';
+  teacherScreen.style.display = 'block';
+  sessionCodeDisplay.textContent = sessionCode;
+  initTeacherView();
+});
 
 // Händelsehanterare för "Anslut till Session"-knappen (Elev)
 joinSessionBtn.addEventListener('click', function() {
-  var sessionCodeValue = sessionCodeInput.value.trim().toUpperCase();
-  if (sessionCodeValue === '') {
+  username = usernameInput.value.trim();
+  if (username === '') {
+    alert('Var god ange ditt namn.');
+    return;
+  }
+  if (sessionCodeInput.value.trim() === '') {
     alert('Var god ange sessionskoden.');
     return;
   }
-  sessionCode = sessionCodeValue;
+  sessionCode = sessionCodeInput.value.trim().toUpperCase();
   isTeacher = false;
 
   // Kontrollera om sessionen existerar
   var sessionRef = ref(database, 'sessions/' + sessionCode);
   get(sessionRef).then(function(snapshot) {
     if (snapshot.exists()) {
-      // Generera ett unikt anonymt ID för eleven
-      anonymousId = generateAnonymousId();
       loginScreen.style.display = 'none';
       studentScreen.style.display = 'block';
+      studentNameEl.textContent = username;
       initStudentView();
     } else {
       alert('Sessionskoden är ogiltig. Var god kontrollera och försök igen.');
     }
-  }).catch(function(error) {
-    console.error(error);
-    alert('Ett fel uppstod vid anslutning till sessionen.');
   });
-});
-
-// Funktion för att generera ett unikt anonymt ID
-function generateAnonymousId() {
-  return 'student_' + Math.random().toString(36).substr(2, 9);
-}
-
-// Händelsehanterare för "Lärarinloggning"-knappen
-teacherLoginBtn.addEventListener('click', function() {
-  loginScreen.style.display = 'none';
-  teacherLoginScreen.style.display = 'block';
-});
-
-// Händelsehanterare för "Tillbaka"-knappen på lärarinloggningsskärmen
-teacherLoginBackBtn.addEventListener('click', function() {
-  teacherLoginScreen.style.display = 'none';
-  loginScreen.style.display = 'block';
-});
-
-// Händelsehanterare för "Logga in"-knappen på lärarinloggningsskärmen
-teacherLoginSubmitBtn.addEventListener('click', function() {
-  var teacherUsername = teacherUsernameInput.value.trim();
-  var teacherPassword = teacherPasswordInput.value;
-
-  if (teacherUsername === '') {
-    alert('Var god ange användarnamn.');
-    return;
-  }
-  if (teacherPassword === '') {
-    alert('Var god ange lösenord.');
-    return;
-  }
-
-  // Här skulle du implementera riktig autentisering
-  // För tillfället använder vi hårdkodat användarnamn och lösenord för demonstration
-  if (teacherUsername === 'larare' && teacherPassword === 'losenord') {
-    isTeacher = true;
-    sessionCode = generateSessionCode();
-    teacherLoginScreen.style.display = 'none';
-    teacherScreen.style.display = 'block';
-    sessionCodeDisplay.textContent = sessionCode;
-    initTeacherView();
-  } else {
-    alert('Fel användarnamn eller lösenord.');
-  }
 });
 
 // Funktion för att generera en unik sessionskod
@@ -134,21 +136,28 @@ function generateSessionCode() {
 
 // Funktion för elevens vy
 function initStudentView() {
-  var userRef = ref(database, 'sessions/' + sessionCode + '/users/' + anonymousId);
-  set(userRef, { flag: currentFlag });
-  onDisconnect(userRef).remove();
+  var userRef = ref(database, 'sessions/' + sessionCode + '/users/' + username);
+  get(userRef).then(function(snapshot) {
+    if (snapshot.exists()) {
+      alert('Användarnamnet är redan taget i denna session. Vänligen välj ett annat namn.');
+      window.location.reload();
+    } else {
+      set(userRef, { flag: currentFlag });
+      onDisconnect(userRef).remove();
 
-  toggleFlagBtn.addEventListener('click', function() {
-    currentFlag = currentFlag === 'red' ? 'green' : 'red';
-    update(userRef, { flag: currentFlag });
-    updateFlagStatus();
-  });
+      toggleFlagBtn.addEventListener('click', function() {
+        currentFlag = currentFlag === 'red' ? 'green' : 'red';
+        update(userRef, { flag: currentFlag });
+        updateFlagStatus();
+      });
 
-  onValue(userRef, function(snapshot) {
-    var data = snapshot.val();
-    if (data) {
-      currentFlag = data.flag;
-      updateFlagStatus();
+      onValue(userRef, function(snapshot) {
+        var data = snapshot.val();
+        if (data) {
+          currentFlag = data.flag;
+          updateFlagStatus();
+        }
+      });
     }
   });
 }
@@ -201,9 +210,9 @@ function resetAllFlags() {
   var usersRef = ref(database, 'sessions/' + sessionCode + '/users');
   get(usersRef).then(function(snapshot) {
     var users = snapshot.val() || {};
-    for (var userId in users) {
-      if (users.hasOwnProperty(userId)) {
-        var userRef = ref(database, 'sessions/' + sessionCode + '/users/' + userId);
+    for (var userName in users) {
+      if (users.hasOwnProperty(userName)) {
+        var userRef = ref(database, 'sessions/' + sessionCode + '/users/' + userName);
         update(userRef, { flag: 'red' });
       }
     }
