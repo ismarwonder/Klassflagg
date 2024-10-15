@@ -24,204 +24,296 @@ const firebaseConfig = {
   measurementId: "G-5Z0Y08ZQYB"
 };
 
-
 // Initialisera Firebase
-var app = initializeApp(firebaseConfig);
-var database = getDatabase(app);
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
 
 // DOM-element
-var loginScreen = document.getElementById('login-screen');
-var studentScreen = document.getElementById('student-screen');
-var teacherScreen = document.getElementById('teacher-screen');
-var usernameInput = document.getElementById('username');
-var passwordGroup = document.getElementById('password-group');
-var passwordInput = document.getElementById('password');
-var createSessionBtn = document.getElementById('create-session-btn');
-var joinSessionBtn = document.getElementById('join-session-btn');
-var sessionCodeInput = document.getElementById('session-code-input');
-var sessionCodeGroup = document.getElementById('session-code-group');
-var sessionCodeDisplay = document.getElementById('session-code-display');
-var studentNameEl = document.getElementById('student-name');
-var toggleFlagBtn = document.getElementById('toggle-flag');
-var resetFlagsBtn = document.getElementById('reset-flags');
-var currentFlagEl = document.getElementById('current-flag');
-var flagChartCtx = document.getElementById('flag-chart').getContext('2d');
+const dom = {
+  loginScreen: document.getElementById('login-screen'),
+  studentScreen: document.getElementById('student-screen'),
+  teacherScreen: document.getElementById('teacher-screen'),
+  usernameInput: document.getElementById('username'),
+  passwordGroup: document.getElementById('password-group'),
+  passwordInput: document.getElementById('password'),
+  createSessionBtn: document.getElementById('create-session-btn'),
+  joinSessionBtn: document.getElementById('join-session-btn'),
+  sessionCodeInput: document.getElementById('session-code-input'),
+  sessionCodeGroup: document.getElementById('session-code-group'),
+  sessionCodeDisplay: document.getElementById('session-code-display'),
+  studentNameEl: document.getElementById('student-name'),
+  toggleFlagBtn: document.getElementById('toggle-flag'),
+  resetFlagsBtn: document.getElementById('reset-flags'),
+  currentFlagEl: document.getElementById('current-flag'),
+  flagChartCtx: document.getElementById('flag-chart').getContext('2d'),
+};
 
-var username = '';
-var isTeacher = false;
-var currentFlag = 'red';
-var flagChart;
-var sessionCode = '';
+// Konstanter
+const TEACHER_PASSWORD = 'LARARLOSENORD'; // Byt ut mot ditt eget lösenord
+const FLAG_STATES = {
+  RED: 'red',
+  GREEN: 'green'
+};
+const DISPLAY = {
+  BLOCK: 'block',
+  NONE: 'none'
+};
 
-// Hemligt lösenord för läraren (ändra detta till ditt eget lösenord)
-var teacherPassword = 'LARARLOSENORD'; // Byt ut mot ditt eget lösenord
+// Applikationsstatus
+const appState = {
+  username: '',
+  isTeacher: false,
+  currentFlag: FLAG_STATES.RED,
+  flagChart: null,
+  sessionCode: '',
+};
 
-// Händelsehanterare för användarnamn inmatning
-usernameInput.addEventListener('keyup', function() {
-  var usernameValue = usernameInput.value.trim().toLowerCase();
-  if (usernameValue === 'teacher') {
-    isTeacher = true;
-    // Dölj sessionskodfältet och anslutningsknappen
-    sessionCodeGroup.style.display = 'none';
-    joinSessionBtn.style.display = 'none';
-    // Visa lösenordsfältet och knappen för att skapa session
-    passwordGroup.style.display = 'block';
-    createSessionBtn.style.display = 'block';
-  } else {
-    isTeacher = false;
-    // Visa sessionskodfältet och anslutningsknappen
-    sessionCodeGroup.style.display = 'block';
-    joinSessionBtn.style.display = 'block';
-    // Dölj lösenordsfältet och knappen för att skapa session
-    passwordGroup.style.display = 'none';
-    createSessionBtn.style.display = 'none';
-  }
-});
+// Initialisera applikationen
+const initialize = () => {
+  setupEventListeners();
+};
 
-// Händelsehanterare för "Skapa Ny Session"-knappen (Lärare)
-createSessionBtn.addEventListener('click', function() {
-  username = usernameInput.value.trim();
-  var password = passwordInput.value;
+// Sätt upp alla händelsehanterare
+const setupEventListeners = () => {
+  dom.usernameInput.addEventListener('input', handleUsernameInput);
+  dom.createSessionBtn.addEventListener('click', handleCreateSession);
+  dom.joinSessionBtn.addEventListener('click', handleJoinSession);
+  dom.toggleFlagBtn.addEventListener('click', handleToggleFlag);
+  dom.resetFlagsBtn.addEventListener('click', handleResetFlags);
+};
 
-  if (username === '') {
-    alert('Var god ange ditt namn.');
+// Hantera inmatning av användarnamn
+const handleUsernameInput = () => {
+  const username = dom.usernameInput.value.trim().toLowerCase();
+  appState.isTeacher = username === 'teacher';
+  appState.isTeacher ? showTeacherOptions() : showStudentOptions();
+};
+
+// Visa alternativ för lärare
+const showTeacherOptions = () => {
+  toggleDisplay(dom.sessionCodeGroup, DISPLAY.NONE);
+  toggleDisplay(dom.joinSessionBtn, DISPLAY.NONE);
+  toggleDisplay(dom.passwordGroup, DISPLAY.BLOCK);
+  toggleDisplay(dom.createSessionBtn, DISPLAY.BLOCK);
+};
+
+// Visa alternativ för studenter
+const showStudentOptions = () => {
+  toggleDisplay(dom.sessionCodeGroup, DISPLAY.BLOCK);
+  toggleDisplay(dom.joinSessionBtn, DISPLAY.BLOCK);
+  toggleDisplay(dom.passwordGroup, DISPLAY.NONE);
+  toggleDisplay(dom.createSessionBtn, DISPLAY.NONE);
+};
+
+// Hantera skapande av ny session
+const handleCreateSession = async () => {
+  const username = dom.usernameInput.value.trim();
+  const password = dom.passwordInput.value;
+
+  if (!validateUsername(username) || !validateTeacherPassword(password)) return;
+
+  appState.username = username;
+  appState.sessionCode = generateSessionCode();
+  appState.isTeacher = true;
+
+  hideElement(dom.loginScreen);
+  showElement(dom.teacherScreen);
+  dom.sessionCodeDisplay.textContent = appState.sessionCode;
+
+  await initTeacherView();
+};
+
+// Hantera anslutning till en session
+const handleJoinSession = async () => {
+  const username = dom.usernameInput.value.trim();
+  const sessionCode = dom.sessionCodeInput.value.trim().toUpperCase();
+
+  if (!validateUsername(username) || !validateSessionCode(sessionCode)) return;
+
+  const exists = await verifySessionExists(sessionCode);
+  if (!exists) {
+    alert('Sessionskoden är ogiltig. Var god kontrollera och försök igen.');
     return;
   }
-  if (password !== teacherPassword) {
+
+  appState.username = username;
+  appState.sessionCode = sessionCode;
+  appState.isTeacher = false;
+
+  hideElement(dom.loginScreen);
+  showElement(dom.studentScreen);
+  dom.studentNameEl.textContent = appState.username;
+
+  await initStudentView();
+};
+
+// Validera användarnamn
+const validateUsername = (username) => {
+  if (!username) {
+    alert('Var god ange ditt namn.');
+    return false;
+  }
+  return true;
+};
+
+// Validera lösenord för lärare
+const validateTeacherPassword = (password) => {
+  if (password !== TEACHER_PASSWORD) {
     alert('Fel lösenord. Var god försök igen.');
-    return;
+    return false;
   }
+  return true;
+};
 
-  isTeacher = true;
-  sessionCode = generateSessionCode();
-  loginScreen.style.display = 'none';
-  teacherScreen.style.display = 'block';
-  sessionCodeDisplay.textContent = sessionCode;
-  initTeacherView();
-});
-
-// Händelsehanterare för "Anslut till Session"-knappen (Elev)
-joinSessionBtn.addEventListener('click', function() {
-  username = usernameInput.value.trim();
-  if (username === '') {
-    alert('Var god ange ditt namn.');
-    return;
-  }
-  if (sessionCodeInput.value.trim() === '') {
+// Validera sessionskod
+const validateSessionCode = (sessionCode) => {
+  if (!sessionCode) {
     alert('Var god ange sessionskoden.');
-    return;
+    return false;
   }
-  sessionCode = sessionCodeInput.value.trim().toUpperCase();
-  isTeacher = false;
+  return true;
+};
 
-  // Kontrollera om sessionen existerar
-  var sessionRef = ref(database, 'sessions/' + sessionCode);
-  get(sessionRef).then(function(snapshot) {
-    if (snapshot.exists()) {
-      loginScreen.style.display = 'none';
-      studentScreen.style.display = 'block';
-      studentNameEl.textContent = username;
-      initStudentView();
-    } else {
-      alert('Sessionskoden är ogiltig. Var god kontrollera och försök igen.');
-    }
-  });
-});
+// Generera en unik sessionskod
+const generateSessionCode = () => {
+  return Math.random().toString(36).substr(2, 6).toUpperCase();
+};
 
-// Funktion för att generera en unik sessionskod
-function generateSessionCode() {
-  var code = Math.random().toString(36).substr(2, 6).toUpperCase();
-  return code;
-}
+// Visa ett DOM-element
+const showElement = (element) => {
+  element.style.display = DISPLAY.BLOCK;
+};
 
-// Funktion för elevens vy
-function initStudentView() {
-  var userRef = ref(database, 'sessions/' + sessionCode + '/users/' + username);
-  get(userRef).then(function(snapshot) {
+// Dölj ett DOM-element
+const hideElement = (element) => {
+  element.style.display = DISPLAY.NONE;
+};
+
+// Ändra visningsläge för ett DOM-element
+const toggleDisplay = (element, displayStyle) => {
+  element.style.display = displayStyle;
+};
+
+// Verifiera om en session existerar
+const verifySessionExists = async (sessionCode) => {
+  try {
+    const sessionRef = ref(database, `sessions/${sessionCode}`);
+    const snapshot = await get(sessionRef);
+    return snapshot.exists();
+  } catch (error) {
+    console.error('Fel vid verifiering av session:', error);
+    return false;
+  }
+};
+
+// Initiera studentens vy
+const initStudentView = async () => {
+  const userRef = ref(database, `sessions/${appState.sessionCode}/users/${appState.username}`);
+  try {
+    const snapshot = await get(userRef);
     if (snapshot.exists()) {
       alert('Användarnamnet är redan taget i denna session. Vänligen välj ett annat namn.');
       window.location.reload();
-    } else {
-      set(userRef, { flag: currentFlag });
-      onDisconnect(userRef).remove();
-
-      toggleFlagBtn.addEventListener('click', function() {
-        currentFlag = currentFlag === 'red' ? 'green' : 'red';
-        update(userRef, { flag: currentFlag });
-        updateFlagStatus();
-      });
-
-      onValue(userRef, function(snapshot) {
-        var data = snapshot.val();
-        if (data) {
-          currentFlag = data.flag;
-          updateFlagStatus();
-        }
-      });
+      return;
     }
-  });
-}
 
-// Funktion för att uppdatera flaggstatus på elevens skärm
-function updateFlagStatus() {
-  currentFlagEl.textContent = currentFlag === 'red' ? 'Röd' : 'Grön';
-  if (currentFlag === 'red') {
-    currentFlagEl.style.color = 'red';
-    toggleFlagBtn.textContent = 'Sätt Grön Flagg';
-    toggleFlagBtn.classList.remove('btn-danger');
-    toggleFlagBtn.classList.add('btn-success');
-  } else {
-    currentFlagEl.style.color = 'green';
-    toggleFlagBtn.textContent = 'Sätt Röd Flagg';
-    toggleFlagBtn.classList.remove('btn-success');
-    toggleFlagBtn.classList.add('btn-danger');
+    await set(userRef, { flag: appState.currentFlag });
+    onDisconnect(userRef).remove();
+    listenToUserFlag(userRef);
+    updateFlagStatus();
+  } catch (error) {
+    console.error('Fel vid initiering av studentvy:', error);
   }
-}
+};
 
-// Funktion för lärarens vy
-function initTeacherView() {
-  // Spara sessionskoden i databasen
-  var sessionRef = ref(database, 'sessions/' + sessionCode);
-  set(sessionRef, { createdAt: Date.now() });
-
-  resetFlagsBtn.addEventListener('click', resetAllFlags);
-  onValue(ref(database, 'sessions/' + sessionCode + '/users'), function(snapshot) {
-    var users = snapshot.val() || {};
-    var greenCount = 0;
-    var redCount = 0;
-
-    for (var key in users) {
-      if (users.hasOwnProperty(key)) {
-        var user = users[key];
-        if (user.flag === 'green') {
-          greenCount++;
-        } else {
-          redCount++;
-        }
-      }
-    }
-
-    updateChart(greenCount, redCount);
-  });
-}
-
-// Funktion för att återställa alla flaggor
-function resetAllFlags() {
-  var usersRef = ref(database, 'sessions/' + sessionCode + '/users');
-  get(usersRef).then(function(snapshot) {
-    var users = snapshot.val() || {};
-    for (var userName in users) {
-      if (users.hasOwnProperty(userName)) {
-        var userRef = ref(database, 'sessions/' + sessionCode + '/users/' + userName);
-        update(userRef, { flag: 'red' });
-      }
+// Lyssna på förändringar av användarens flagga
+const listenToUserFlag = (userRef) => {
+  onValue(userRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data && data.flag !== appState.currentFlag) {
+      appState.currentFlag = data.flag;
+      updateFlagStatus();
     }
   });
-}
+};
 
-// Funktion för att uppdatera cirkeldiagrammet
-function updateChart(greenCount, redCount) {
-  var data = {
+// Hantera toggling av flagga
+const handleToggleFlag = () => {
+  const newFlag = appState.currentFlag === FLAG_STATES.RED ? FLAG_STATES.GREEN : FLAG_STATES.RED;
+  updateUserFlag(newFlag);
+};
+
+// Uppdatera användarens flagga i databasen
+const updateUserFlag = async (newFlag) => {
+  const userRef = ref(database, `sessions/${appState.sessionCode}/users/${appState.username}`);
+  try {
+    appState.currentFlag = newFlag;
+    await update(userRef, { flag: newFlag });
+    updateFlagStatus();
+  } catch (error) {
+    console.error('Fel vid uppdatering av flagga:', error);
+  }
+};
+
+// Uppdatera flaggstatus på elevens skärm
+const updateFlagStatus = () => {
+  const isRed = appState.currentFlag === FLAG_STATES.RED;
+  dom.currentFlagEl.textContent = isRed ? 'Röd' : 'Grön';
+  dom.currentFlagEl.style.color = isRed ? 'red' : 'green';
+  dom.toggleFlagBtn.textContent = isRed ? 'Sätt Grön Flagg' : 'Sätt Röd Flagg';
+  dom.toggleFlagBtn.classList.toggle('btn-danger', isRed);
+  dom.toggleFlagBtn.classList.toggle('btn-success', !isRed);
+};
+
+// Initiera lärarens vy
+const initTeacherView = async () => {
+  const sessionRef = ref(database, `sessions/${appState.sessionCode}`);
+  try {
+    await set(sessionRef, { createdAt: Date.now() });
+
+    onValue(ref(database, `sessions/${appState.sessionCode}/users`), (snapshot) => {
+      const users = snapshot.val() || {};
+      const { greenCount, redCount } = countFlags(users);
+      updateChart(greenCount, redCount);
+    });
+  } catch (error) {
+    console.error('Fel vid initiering av läraryv:', error);
+  }
+};
+
+// Räkna antalet gröna och röda flaggor
+const countFlags = (users) => {
+  return Object.values(users).reduce(
+    (acc, user) => {
+      if (user.flag === FLAG_STATES.GREEN) acc.greenCount += 1;
+      else acc.redCount += 1;
+      return acc;
+    },
+    { greenCount: 0, redCount: 0 }
+  );
+};
+
+// Hantera återställning av alla flaggor
+const handleResetFlags = async () => {
+  const usersRef = ref(database, `sessions/${appState.sessionCode}/users`);
+  try {
+    const snapshot = await get(usersRef);
+    const users = snapshot.val() || {};
+    const updates = {};
+
+    Object.keys(users).forEach((username) => {
+      updates[`${username}/flag`] = FLAG_STATES.RED;
+    });
+
+    await update(usersRef, updates);
+  } catch (error) {
+    console.error('Fel vid återställning av flaggor:', error);
+  }
+};
+
+// Uppdatera cirkeldiagrammet
+const updateChart = (greenCount, redCount) => {
+  const data = {
     labels: ['Grön Flagg', 'Röd Flagg'],
     datasets: [{
       data: [greenCount, redCount],
@@ -229,17 +321,20 @@ function updateChart(greenCount, redCount) {
     }],
   };
 
-  if (flagChart) {
-    flagChart.data = data;
-    flagChart.update();
+  if (appState.flagChart) {
+    appState.flagChart.data = data;
+    appState.flagChart.update();
   } else {
-    flagChart = new Chart(flagChartCtx, {
+    appState.flagChart = new Chart(dom.flagChartCtx, {
       type: 'doughnut',
-      data: data,
+      data,
       options: {
         responsive: true,
         maintainAspectRatio: false,
       },
     });
   }
-}
+};
+
+// Starta applikationen
+document.addEventListener('DOMContentLoaded', initialize);
