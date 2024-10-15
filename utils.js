@@ -1,5 +1,7 @@
 // utils.js
 
+import { FLAG_STATES } from './state.js';
+
 const validateUsername = (username) => {
   if (!username) {
     alert('Var god ange ditt namn.');
