@@ -31,9 +31,6 @@ const dom = {
   const hideElement = (element) => {
     element.style.display = DISPLAY.NONE;
   };
+
   
-  const toggleDisplay = (element, displayStyle) => {
-    element.style.display = displayStyle;
-  };
-  
-  export { dom, showElement, hideElement, toggleDisplay, DISPLAY };
+  export { dom, showElement, hideElement, DISPLAY };
