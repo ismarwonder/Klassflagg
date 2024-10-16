@@ -3,17 +3,15 @@
 import { dom, showElement, hideElement } from './dom.js';
 import { appState } from './state.js';
 import { handleCreateSession, handleJoinSession } from './auth.js';
-import { handleToggleFlag, handleResetFlags } from './session.js'; 
-
+import { handleToggleFlag, handleResetFlags } from './session.js';
 
 const setupEventListeners = () => {
   dom.usernameInput.addEventListener('input', handleUsernameInput);
   dom.createSessionBtn.addEventListener('click', handleCreateSession);
   dom.joinSessionBtn.addEventListener('click', handleJoinSession);
-  dom.toggleFlagBtn.addEventListener('click', handleToggleFlag); 
-  dom.resetFlagsBtn.addEventListener('click', handleResetFlags); 
+  dom.toggleFlagBtn.addEventListener('click', handleToggleFlag);
+  dom.resetFlagsBtn.addEventListener('click', handleResetFlags);
 };
-
 
 const handleUsernameInput = () => {
   const username = dom.usernameInput.value.trim().toLowerCase();

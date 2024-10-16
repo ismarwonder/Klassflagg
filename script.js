@@ -1,7 +1,7 @@
 // script.js
 
 // Importera Firebase-moduler
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
 import {
   getDatabase,
   ref,
@@ -10,18 +10,19 @@ import {
   onValue,
   update,
   onDisconnect,
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+} from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
 
 // Firebase-konfiguration
 const firebaseConfig = {
-  apiKey: "AIzaSyCEnhv-697OiE56F0ghAuhSMh1wxm-ppnM",
-  authDomain: "klassflagg.firebaseapp.com",
-  projectId: "klassflagg",
-  databaseURL: "https://klassflagg-default-rtdb.europe-west1.firebasedatabase.app/",
-  storageBucket: "klassflagg.appspot.com",
-  messagingSenderId: "85254934938",
-  appId: "1:85254934938:web:830f4b9e1e078566e5aa23",
-  measurementId: "G-5Z0Y08ZQYB"
+  apiKey: 'AIzaSyCEnhv-697OiE56F0ghAuhSMh1wxm-ppnM',
+  authDomain: 'klassflagg.firebaseapp.com',
+  projectId: 'klassflagg',
+  databaseURL:
+    'https://klassflagg-default-rtdb.europe-west1.firebasedatabase.app/',
+  storageBucket: 'klassflagg.appspot.com',
+  messagingSenderId: '85254934938',
+  appId: '1:85254934938:web:830f4b9e1e078566e5aa23',
+  measurementId: 'G-5Z0Y08ZQYB',
 };
 
 // Initialisera Firebase
@@ -52,11 +53,11 @@ const dom = {
 const TEACHER_PASSWORD = 'LARARLOSENORD'; // Byt ut mot ditt eget lösenord
 const FLAG_STATES = {
   RED: 'red',
-  GREEN: 'green'
+  GREEN: 'green',
 };
 const DISPLAY = {
   BLOCK: 'block',
-  NONE: 'none'
+  NONE: 'none',
 };
 
 // Applikationsstatus
@@ -208,11 +209,16 @@ const verifySessionExists = async (sessionCode) => {
 
 // Initiera studentens vy
 const initStudentView = async () => {
-  const userRef = ref(database, `sessions/${appState.sessionCode}/users/${appState.username}`);
+  const userRef = ref(
+    database,
+    `sessions/${appState.sessionCode}/users/${appState.username}`
+  );
   try {
     const snapshot = await get(userRef);
     if (snapshot.exists()) {
-      alert('Användarnamnet är redan taget i denna session. Vänligen välj ett annat namn.');
+      alert(
+        'Användarnamnet är redan taget i denna session. Vänligen välj ett annat namn.'
+      );
       window.location.reload();
       return;
     }
@@ -239,13 +245,19 @@ const listenToUserFlag = (userRef) => {
 
 // Hantera toggling av flagga
 const handleToggleFlag = () => {
-  const newFlag = appState.currentFlag === FLAG_STATES.RED ? FLAG_STATES.GREEN : FLAG_STATES.RED;
+  const newFlag =
+    appState.currentFlag === FLAG_STATES.RED
+      ? FLAG_STATES.GREEN
+      : FLAG_STATES.RED;
   updateUserFlag(newFlag);
 };
 
 // Uppdatera användarens flagga i databasen
 const updateUserFlag = async (newFlag) => {
-  const userRef = ref(database, `sessions/${appState.sessionCode}/users/${appState.username}`);
+  const userRef = ref(
+    database,
+    `sessions/${appState.sessionCode}/users/${appState.username}`
+  );
   try {
     appState.currentFlag = newFlag;
     await update(userRef, { flag: newFlag });
@@ -271,11 +283,14 @@ const initTeacherView = async () => {
   try {
     await set(sessionRef, { createdAt: Date.now() });
 
-    onValue(ref(database, `sessions/${appState.sessionCode}/users`), (snapshot) => {
-      const users = snapshot.val() || {};
-      const { greenCount, redCount } = countFlags(users);
-      updateChart(greenCount, redCount);
-    });
+    onValue(
+      ref(database, `sessions/${appState.sessionCode}/users`),
+      (snapshot) => {
+        const users = snapshot.val() || {};
+        const { greenCount, redCount } = countFlags(users);
+        updateChart(greenCount, redCount);
+      }
+    );
   } catch (error) {
     console.error('Fel vid initiering av läraryv:', error);
   }
@@ -315,10 +330,12 @@ const handleResetFlags = async () => {
 const updateChart = (greenCount, redCount) => {
   const data = {
     labels: ['Grön Flagg', 'Röd Flagg'],
-    datasets: [{
-      data: [greenCount, redCount],
-      backgroundColor: ['#28a745', '#dc3545'],
-    }],
+    datasets: [
+      {
+        data: [greenCount, redCount],
+        backgroundColor: ['#28a745', '#dc3545'],
+      },
+    ],
   };
 
   if (appState.flagChart) {

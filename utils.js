@@ -27,7 +27,7 @@ const validateSessionCode = (sessionCode) => {
 };
 
 /**
- * @param {Object} users 
+ * @param {Object} users
  * @returns {Object}
  */
 const countFlags = (users) => {
@@ -50,5 +50,5 @@ export {
   validateTeacherPassword,
   validateSessionCode,
   generateSessionCode,
-  countFlags
+  countFlags,
 };

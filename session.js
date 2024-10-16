@@ -1,15 +1,21 @@
 // session.js
 
 import { database } from './firebase.js';
-import { ref, update, get } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+import {
+  ref,
+  update,
+  get,
+} from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
 import { appState, FLAG_STATES } from './state.js';
 import { updateFlagStatus } from './views.js';
 import { updateChart } from './chart.js';
 import { countFlags } from './utils.js';
 
-
 const handleToggleFlag = () => {
-  const newFlag = appState.currentFlag === FLAG_STATES.RED ? FLAG_STATES.GREEN : FLAG_STATES.RED;
+  const newFlag =
+    appState.currentFlag === FLAG_STATES.RED
+      ? FLAG_STATES.GREEN
+      : FLAG_STATES.RED;
   updateUserFlag(newFlag);
 };
 
@@ -17,7 +23,10 @@ const handleToggleFlag = () => {
  * @param {string} newFlag
  */
 const updateUserFlag = async (newFlag) => {
-  const userRef = ref(database, `sessions/${appState.sessionCode}/users/${appState.username}`);
+  const userRef = ref(
+    database,
+    `sessions/${appState.sessionCode}/users/${appState.username}`
+  );
   try {
     appState.currentFlag = newFlag;
     await update(userRef, { flag: newFlag });

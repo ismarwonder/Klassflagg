@@ -1,19 +1,31 @@
 // auth.js
 
 import { database } from './firebase.js';
-import { ref, get } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+import {
+  ref,
+  get,
+} from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
 import { appState } from './state.js';
-import { validateUsername, validateTeacherPassword, validateSessionCode, generateSessionCode } from './utils.js';
+import {
+  validateUsername,
+  validateTeacherPassword,
+  validateSessionCode,
+  generateSessionCode,
+} from './utils.js';
 import { dom, showElement, hideElement } from './dom.js';
 import { initTeacherView, initStudentView } from './views.js';
 
-const TEACHER_PASSWORD = 'LARARLOSENORD'; 
+const TEACHER_PASSWORD = 'LARARLOSENORD';
 
 const handleCreateSession = async () => {
   const username = dom.usernameInput.value.trim();
   const password = dom.passwordInput.value;
 
-  if (!validateUsername(username) || !validateTeacherPassword(password, TEACHER_PASSWORD)) return;
+  if (
+    !validateUsername(username) ||
+    !validateTeacherPassword(password, TEACHER_PASSWORD)
+  )
+    return;
 
   appState.username = username;
   appState.sessionCode = generateSessionCode();

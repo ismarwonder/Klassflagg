@@ -1,18 +1,29 @@
 // views.js
 
 import { database } from './firebase.js';
-import { ref, set, get, onValue, onDisconnect } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+import {
+  ref,
+  set,
+  get,
+  onValue,
+  onDisconnect,
+} from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
 import { appState, FLAG_STATES } from './state.js';
 import { dom } from './dom.js';
 import { countFlags } from './utils.js';
 import { updateChart } from './chart.js';
 
 const initStudentView = async () => {
-  const userRef = ref(database, `sessions/${appState.sessionCode}/users/${appState.username}`);
+  const userRef = ref(
+    database,
+    `sessions/${appState.sessionCode}/users/${appState.username}`
+  );
   try {
     const snapshot = await get(userRef);
     if (snapshot.exists()) {
-      alert('Användarnamnet är redan taget i denna session. Vänligen välj ett annat namn.');
+      alert(
+        'Användarnamnet är redan taget i denna session. Vänligen välj ett annat namn.'
+      );
       window.location.reload();
       return;
     }
@@ -41,11 +52,14 @@ const initTeacherView = async () => {
   try {
     await set(sessionRef, { createdAt: Date.now() });
 
-    onValue(ref(database, `sessions/${appState.sessionCode}/users`), (snapshot) => {
-      const users = snapshot.val() || {};
-      const { greenCount, redCount } = countFlags(users);
-      updateChart(greenCount, redCount);
-    });
+    onValue(
+      ref(database, `sessions/${appState.sessionCode}/users`),
+      (snapshot) => {
+        const users = snapshot.val() || {};
+        const { greenCount, redCount } = countFlags(users);
+        updateChart(greenCount, redCount);
+      }
+    );
   } catch (error) {
     console.error('Fel vid initiering av läraryv:', error);
   }

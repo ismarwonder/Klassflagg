@@ -1,7 +1,10 @@
 // chart.js
 
 import { database } from './firebase.js';
-import { ref, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+import {
+  ref,
+  onValue,
+} from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
 import { dom } from './dom.js';
 import { appState } from './state.js';
 import { countFlags } from './utils.js';
@@ -13,15 +16,17 @@ const setupChartListener = (sessionCode) => {
     const { greenCount, redCount } = countFlags(users);
     updateChart(greenCount, redCount);
   });
-};  
+};
 
 const updateChart = (greenCount, redCount) => {
   const data = {
     labels: ['Grön Flagg', 'Röd Flagg'],
-    datasets: [{
-      data: [greenCount, redCount],
-      backgroundColor: ['#28a745', '#dc3545'],
-    }],
+    datasets: [
+      {
+        data: [greenCount, redCount],
+        backgroundColor: ['#28a745', '#dc3545'],
+      },
+    ],
   };
 
   if (appState.flagChart) {
@@ -39,7 +44,5 @@ const updateChart = (greenCount, redCount) => {
     });
   }
 };
-
-
 
 export { setupChartListener, updateChart };
