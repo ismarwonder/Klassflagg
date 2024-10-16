@@ -325,6 +325,7 @@ const updateChart = (greenCount, redCount) => {
     appState.flagChart.data = data;
     appState.flagChart.update();
   } else {
+    // eslint-disable-next-line no-undef
     appState.flagChart = new Chart(dom.flagChartCtx, {
       type: 'doughnut',
       data,

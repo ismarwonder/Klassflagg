@@ -1,5 +1,7 @@
 // chart.js
 
+import { database } from './firebase.js';
+import { ref, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 import { dom } from './dom.js';
 import { appState } from './state.js';
 import { countFlags } from './utils.js';
@@ -26,6 +28,7 @@ const updateChart = (greenCount, redCount) => {
     appState.flagChart.data = data;
     appState.flagChart.update();
   } else {
+    // eslint-disable-next-line no-undef
     appState.flagChart = new Chart(dom.flagChartCtx, {
       type: 'doughnut',
       data,
